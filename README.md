@@ -1,2 +1,1 @@
-# STTR-script
-STTR script for Kola Map
+# STTR Script - VJaBoG32
