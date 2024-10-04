@@ -45,7 +45,6 @@
 -- Happy scripting and fly safe! :)
 -- ================================================
 
-dofile("dev/dcs_mock.lua")
 
 local utils = {}
 
