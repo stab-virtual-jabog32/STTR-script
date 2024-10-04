@@ -179,15 +179,22 @@ for country, rangesInCountry in pairs(ranges) do
         local rangeMenu = missionCommands.addSubMenu("Range " .. rangeID, countryMenu)
         
         -- Iterate through metagroups within the range
-        for metagroup, groups in pairs(metagroupsInRange) do
+        for metagroup, metagroups in pairs(metagroupsInRange) do
             -- Create a submenu for each metagroup within the range
             local metagroupMenu = missionCommands.addSubMenu(metagroup, rangeMenu)
             
             -- Add a command to spawn the metagroup (e.g., send the metagroup to the spawn function)
-            missionCommands.addCommand("Spawn " .. metagroup, metagroupMenu, spawnMetagroup, metagroup)
-			missionCommands.addCommand("Despawn " .. metagroup, metagroupMenu, despawnMetagroup, metagroup)
-			missionCommands.addCommand(metagroup .. " Weapons Free", metagroupMenu, weaponsFreeRange, metagroup)
-			missionCommands.addCommand(metagroup .. " Weapons Hold", metagroupMenu, returnFireRange, metagroup)
+            missionCommands.addCommand("Spawn " .. metagroup, metagroupMenu, spawnMetagroup, metagroups)
+			missionCommands.addCommand("Despawn " .. metagroup, metagroupMenu, despawnMetagroup, metagroups)
+			missionCommands.addCommand(metagroup .. " Weapons Free", metagroupMenu, weaponsFreeRange, metagroups)
+			missionCommands.addCommand(metagroup .. " Weapons Hold", metagroupMenu, returnFireRange, metagroups)
+
+			trigger.action.outText("Debug", 20)
+			if metagroups == nil then
+				trigger.action.outText("nil :(", 20)
+			else
+				trigger.action.outText(metagroups, 20)
+			end
         end
     end
 end
