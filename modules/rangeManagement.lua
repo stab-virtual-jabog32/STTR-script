@@ -58,6 +58,7 @@
 -- ############################################################################
 -- ###                            RANGE SPAWNING                            ###
 -- ############################################################################
+local groupStatus = {}
 function spawnMetagroup(data)
     -- recover country and range ID
     local country = data.country
@@ -72,12 +73,19 @@ function spawnMetagroup(data)
         
         -- Use pairs() to iterate through groups (since groups are stored as key-value pairs)
         for groupName, group in pairs(groups) do
-            -- Check if the group exists in the mission
-            local groupObject = Group.getByName(groupName)
-            if groupObject then
-				trigger.action.activateGroup(groupObject)
+            -- Check the group's status before respawning
+            if groupStatus[groupName] == nil or not groupStatus[groupName].active then
+                -- Try to activate or respawn the group
+                local groupObject = Group.getByName(groupName)
+                if groupObject then
+                    trigger.action.activateGroup(groupObject)
+                    groupStatus[groupName] = { active = true }
+                else
+                    mist.respawnGroup(groupName, true)
+                    groupStatus[groupName] = { active = true }
+                end
             else
-                trigger.action.outText("Group not found: " .. groupName, 10)
+                trigger.action.outText("Group " .. groupName .. " is already active.", 10)
             end
         end
         
@@ -88,6 +96,7 @@ function spawnMetagroup(data)
         trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
     end
 end
+
 
 
 function despawnMetagroup(data)
@@ -102,12 +111,18 @@ function despawnMetagroup(data)
         
         -- Use pairs() to iterate through groups (since groups are stored as key-value pairs)
         for groupName, group in pairs(groups) do
-            -- Check if the group exists in the mission
-            local groupObject = Group.getByName(groupName)
-            if groupObject then
-                trigger.action.deactivateGroup(groupObject)
+            -- Check the group's status before deactivating
+            if groupStatus[groupName] and groupStatus[groupName].active then
+                -- Deactivate the group
+                local groupObject = Group.getByName(groupName)
+                if groupObject then
+                    trigger.action.deactivateGroup(groupObject)
+                    groupStatus[groupName].active = false
+                else
+                    trigger.action.outText("Group not found: " .. groupName, 10)
+                end
             else
-                trigger.action.outText("Group not found: " .. groupName, 10)
+                trigger.action.outText("Group " .. groupName .. " is already inactive or not found.", 10)
             end
         end
 
@@ -118,6 +133,7 @@ function despawnMetagroup(data)
         trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
     end
 end
+
 
 
 
@@ -215,18 +231,13 @@ end
 -- add range options to menu
 --Range Control
 ranges = {}
-
--- Categorizes groups from the mission database into 'ranges' and 'latn_areas' based on their names (set in the Mission Editor)
--- For example, a group named "64A-10" is categorized under 'ranges' (e.g., "64A"), while "LATN-East" goes into 'latn_areas'
--- Dynamically organizes mission entities based on their naming conventions for efficient activation/deactivation control
-
--- Define the _DATABASE structure similar to MOOSE (substitute for MOOSE)
 _DATABASE = {
     GROUPS = {}
 }
-
--- Call the function to build the database
 buildDatabase()
+
+
+
 
 for groupName, group in pairs(_DATABASE.GROUPS) do
     -- Match the pattern and extract the four parts (Country, RangeID, MetaGroup, ID)
