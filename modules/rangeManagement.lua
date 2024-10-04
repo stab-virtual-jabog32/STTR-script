@@ -25,7 +25,7 @@
 -- ================================================================================================
 -- ==                           Functions included in this module:                               ==
 -- ================================================================================================
---  1. **spawnRange(range)**: Spawns all units associated with a range.
+--  1. **spawnMetagroup(range)**: Spawns all units associated with a range.
 --  2. **despawnRange(range)**: Despawns all units associated with a range.
 --  3. **activateRange(range)**: Activates AI units within a range with defined ROE.
 --  4. **deactivateRange(range)**: Deactivates AI units within a range.
@@ -46,7 +46,7 @@
 --
 -- After loading, you can call the functions directly, like this:
 --
---   spawnRange("RangeName")
+--   spawnMetagroup("RangeName")
 --   activateLatn("LATNArea")
 -- 
 -- These functions allow you to dynamically control the AI and range management for your mission.
@@ -58,26 +58,87 @@
 -- ############################################################################
 -- ###                            RANGE SPAWNING                            ###
 -- ############################################################################
-function spawnRange(range)
-	for groupName, group in pairs(ranges[range]) do
-		trigger.action.activateGroup(Group.getByName(groupName))
-	end
-
-	trigger.action.outText("Range " .. range .. " spawned", 10)
+local groupStatus = {}
+function spawnMetagroup(data)
+    -- recover country and range ID
+    local country = data.country
+    local rangeID = data.rangeID
+    local metagroup = data.metagroup
+    
+    -- Check if the metagroup exists under the correct country and rangeID
+    if ranges[country] and ranges[country][rangeID] and ranges[country][rangeID][metagroup] then
+        
+        -- Retrieve the groups associated with this metagroup
+        local groups = ranges[country][rangeID][metagroup]
+        
+        -- Use pairs() to iterate through groups (since groups are stored as key-value pairs)
+        for groupName, group in pairs(groups) do
+            -- Check the group's status before respawning
+            if groupStatus[groupName] == nil or not groupStatus[groupName].active then
+                -- Try to activate or respawn the group
+                local groupObject = Group.getByName(groupName)
+                if groupObject then
+                    trigger.action.activateGroup(groupObject)
+                    groupStatus[groupName] = { active = true }
+                else
+                    mist.respawnGroup(groupName, true)
+                    groupStatus[groupName] = { active = true }
+                end
+            else
+                trigger.action.outText("Group " .. groupName .. " is already active.", 10)
+            end
+        end
+        
+        -- Output text for feedback after spawning the groups
+        trigger.action.outText("Spawning Range Group: " .. metagroup .. " in " .. rangeID .. " (" .. country .. ")", 10)
+    else
+        -- If no metagroup was found
+        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
+    end
 end
 
 
-function despawnRange(range)
-	for groupName, group in pairs(ranges[range]) do
-		trigger.action.deactivateGroup(Group.getByName(groupName))
-	end
 
-	trigger.action.outText("Range " .. range .. " despawned", 10)
+function despawnMetagroup(data)
+    local country = data.country
+    local rangeID = data.rangeID
+    local metagroup = data.metagroup
+
+    -- Check if the metagroup exists under the correct country and rangeID
+    if ranges[country] and ranges[country][rangeID] and ranges[country][rangeID][metagroup] then
+        -- Retrieve the groups associated with this metagroup
+        local groups = ranges[country][rangeID][metagroup]
+        
+        -- Use pairs() to iterate through groups (since groups are stored as key-value pairs)
+        for groupName, group in pairs(groups) do
+            -- Check the group's status before deactivating
+            if groupStatus[groupName] and groupStatus[groupName].active then
+                -- Deactivate the group
+                local groupObject = Group.getByName(groupName)
+                if groupObject then
+                    trigger.action.deactivateGroup(groupObject)
+                    groupStatus[groupName].active = false
+                else
+                    trigger.action.outText("Group not found: " .. groupName, 10)
+                end
+            else
+                trigger.action.outText("Group " .. groupName .. " is already inactive or not found.", 10)
+            end
+        end
+
+        -- Output text for feedback after despawning the groups
+        trigger.action.outText("Despawning Range Group: " .. metagroup .. " in " .. rangeID .. " (" .. country .. ")", 10)
+    else
+        -- If no metagroup was found
+        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
+    end
 end
 
 
-function activateRange(range)
-	for groupName, group in pairs(ranges[range]) do
+
+
+function activateRange(metagroup)
+	for groupName, group in pairs(ranges[metagroup]) do
 		local controller = Group.getByName(groupName):getController()
 		controller:setOnOff(true)
 
@@ -86,160 +147,149 @@ function activateRange(range)
 		controller:setOption(9, 2) -- ALARM_STATE = RED
 	end
 
-	trigger.action.outText("Range " .. range .. " activated", 10)
+	trigger.action.outText("Range Group " .. metagroup .. " activated", 10)
 end
 
 
-function deactivateRange(range)
-	for groupName, group in pairs(ranges[range]) do
+function deactivateRange(metagroup)
+	for groupName, group in pairs(ranges[metagroup]) do
 		local controller = Group.getByName(groupName):getController()
 		controller:setOption(0, 4) -- ROE = WEAPON HOLD
 		controller:setOnOff(false)
 	end
 
-	trigger.action.outText("Range " .. range .. " deactivated", 10)
+	trigger.action.outText("Range Group " .. metagroup .. " deactivated", 10)
 end
 
-
--- ############################################################################
--- ###                            LATN AREAS MANAGEMENT                     ###
--- ############################################################################
-function spawnLatn(area)
-	for groupName, group in pairs(latn_areas[area]) do
-		trigger.action.activateGroup(Group.getByName(groupName))
-	end
-
-	trigger.action.outText("AAA/SAM threats in " .. area .. " spawned.", 10)
-end
-
-function despawnLatn(range)
-	for groupName, group in pairs(ranges[range]) do
-		local grp = Group.getByName(groupName)
-		local controller = grp:getController()
-		controller:setOption(0, 4) -- ROE = WEAPON HOLD
-		controller:setOnOff(false)
-		trigger.action.deactivateGroup(grp)
-	end
-
-	trigger.action.outText("AAA/SAM threats in " .. area .. " despawned.", 10)
-end
-
-
-
-function activateLatn(area)
-	for groupName, group in pairs(latn_areas[area]) do
-		local controller = Group.getByName(groupName):getController()
-		controller:setOnOff(true)
-
-		-- see https://wiki.hoggitworld.com/view/DCS_enum_AI
-		controller:setOption(0, 2) -- ROE = OPEN FIRE
-		controller:setOption(9, 2) -- ALARM_STATE = RED
-	end
-
-	trigger.action.outText("AAA/SAM threats in " .. area .. " activated!", 10)
-end
-
-function deactivateLatn(area)
-	for groupName, group in pairs(latn_areas[area]) do
-		local controller = Group.getByName(groupName):getController()
-		controller:setOption(0, 4) -- ROE = WEAPON HOLD
-		controller:setOnOff(false)
-	end
-
-	trigger.action.outText("AAA/SAM threats in " .. area .. " deactivated.", 10)
-end
 
 -- ############################################################################
 -- ###                        RULES OF ENGAGEMENT (ROE)                     ###
 -- ############################################################################
-function weaponsFreeRange(range)
-	for groupName, group in pairs(ranges[range]) do
-		local controller = Group.getByName(groupName):getController()
-		controller:setOption(0, 2) -- ROE = OPEN FIRE
-	end
+function weaponsFreeRange(data)
+    local country = data.country
+    local rangeID = data.rangeID
+    local metagroup = data.metagroup
 
-	trigger.action.outText("Range " .. range .. " ROE Weapons FREE set!", 10)
+    -- Check if the metagroup exists under the correct country and rangeID
+    if ranges[country] and ranges[country][rangeID] and ranges[country][rangeID][metagroup] then
+        -- Retrieve the groups associated with this metagroup
+        local groups = ranges[country][rangeID][metagroup]
+        
+        -- Use pairs() to iterate through groups
+        for groupName, group in pairs(groups) do
+            -- Check if the group exists in the mission
+            local groupObject = Group.getByName(groupName)
+            if groupObject then
+                local controller = groupObject:getController()
+                controller:setOption(0, 2) -- ROE = OPEN FIRE (Weapons Free)
+            else
+                trigger.action.outText("Group not found: " .. groupName, 10)
+            end
+        end
+
+        -- Output text for feedback after setting ROE to Weapons Free
+        trigger.action.outText("Range Group " .. metagroup .. " in " .. rangeID .. " (" .. country .. ") set to Weapons Free", 10)
+    else
+        -- If no metagroup was found
+        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
+    end
 end
 
 
-function returnFireRange(range)
-	for groupName, group in pairs(ranges[range]) do
-		local controller = Group.getByName(groupName):getController()
-		controller:setOption(0, 3)
-	end
 
-	trigger.action.outText("Range " .. range .. " ROE return fire set", 10)
+
+function returnFireRange(data)
+    local country = data.country
+    local rangeID = data.rangeID
+    local metagroup = data.metagroup
+
+    -- Check if the metagroup exists under the correct country and rangeID
+    if ranges[country] and ranges[country][rangeID] and ranges[country][rangeID][metagroup] then
+        -- Retrieve the groups associated with this metagroup
+        local groups = ranges[country][rangeID][metagroup]
+        
+        -- Use pairs() to iterate through groups
+        for groupName, group in pairs(groups) do
+            -- Check if the group exists in the mission
+            local groupObject = Group.getByName(groupName)
+            if groupObject then
+                local controller = groupObject:getController()
+                controller:setOption(0, 3) -- ROE = RETURN FIRE
+            else
+                trigger.action.outText("Group not found: " .. groupName, 10)
+            end
+        end
+
+        -- Output text for feedback after setting ROE to Return Fire
+        trigger.action.outText("Range Group " .. metagroup .. " in " .. rangeID .. " (" .. country .. ") set to Return Fire", 10)
+    else
+        -- If no metagroup was found
+        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
+    end
 end
 
 -- add range options to menu
 --Range Control
 ranges = {}
-latn_areas = {}
-latn_names = {
-	["LATNW"] = "LATN West",
-	["LATNC"] = "LATN Central",
-	["LATNE"] = "LATN East",
-	["LATNV"] = "LATN Village",
-	["LATNG"] = "LATN Ground",
-	["LATNA"] = "LATN Airport",
-}
-
--- Categorizes groups from the mission database into 'ranges' and 'latn_areas' based on their names (set in the Mission Editor)
--- For example, a group named "64A-10" is categorized under 'ranges' (e.g., "64A"), while "LATN-East" goes into 'latn_areas'
--- Dynamically organizes mission entities based on their naming conventions for efficient activation/deactivation control
-
--- Define the _DATABASE structure similar to MOOSE (substitute for MOOSE)
 _DATABASE = {
     GROUPS = {}
 }
-
--- Call the function to build the database
 buildDatabase()
 
+
+
+
 for groupName, group in pairs(_DATABASE.GROUPS) do
-	if string.match(groupName, "^%d%dM?G?T?%-%d%d$") then
-		range, id = string.match(groupName, "^(%d%dM?G?T?)%-(%d%d)$")
-		if ranges[range] == nil then
-			ranges[range] = {}
-		end
-		ranges[range][groupName] = group
-	end
-	if string.match(groupName, "^LATN.%-.+$") then
-		area, id = string.match(groupName, "^(LATN.)%-(.+)$")
-		if latn_areas[area] == nil then
-			latn_areas[area] = {}
-		end
-		latn_areas[area][groupName] = group
+    -- Match the pattern and extract the four parts (Country, RangeID, MetaGroup, ID)
+    local country, rangeID, metagroup, id = string.match(groupName, "^(%u%u%u)%-(%w+)%-(.-)%-(%d%d?)$")
+    
+    if country and rangeID and metagroup and id then
+        -- Ensure that the country exists in the ranges table
+        if ranges[country] == nil then
+            ranges[country] = {}
+        end
+        
+        -- Ensure that the rangeID exists under the country
+        if ranges[country][rangeID] == nil then
+            ranges[country][rangeID] = {}
+        end
+        
+        -- Ensure that the metagroup exists under the rangeID
+        if ranges[country][rangeID][metagroup] == nil then
+            ranges[country][rangeID][metagroup] = {}
+        end
+        
+        -- Store the group under the metagroup
+        ranges[country][rangeID][metagroup][groupName] = group
+        
 	end
 end
  
--- Creates the menu
+-- Creating the radio menu based on the hierarchical structure (Country -> RangeIDs -> metaGroups -> ID)
 local rangeControlMenu = missionCommands.addSubMenu("Range Control ...", generalOptions)
-local currentRangeFirstDigit = "0"
-local rangeGroupControlMenu
-for range, groups in pairsByKeys(ranges)
-do
-	local rangeFirstDigit = string.sub(range, 1, 1)
-	if rangeFirstDigit ~= currentRangeFirstDigit
-	then
-		rangeGroupControlMenu = missionCommands.addSubMenu("Ranges " .. rangeFirstDigit .. "X", rangeControlMenu)
-		currentRangeFirstDigit = rangeFirstDigit
-	end
-	local rangeMenu = missionCommands.addSubMenu("Range " .. range, rangeGroupControlMenu)
-	missionCommands.addCommand("Spawn", rangeMenu, spawnRange, range)
-	missionCommands.addCommand("Despawn", rangeMenu, despawnRange, range)
-	missionCommands.addCommand("Activate", rangeMenu, activateRange, range)
-	missionCommands.addCommand("Deactivate", rangeMenu, deactivateRange, range)
-	missionCommands.addCommand("ROE Weapons free", rangeMenu, weaponsFreeRange, range)
-	missionCommands.addCommand("ROE Return fire", rangeMenu, returnFireRange, range)
+
+-- Iterate through countries
+for country, rangesInCountry in pairs(ranges) do
+    -- Create a submenu for each country
+    local countryMenu = missionCommands.addSubMenu(country, rangeControlMenu)
+    
+    -- Iterate through ranges within the country
+    for rangeID, metagroupsInRange in pairs(rangesInCountry) do
+        -- Create a submenu for each range within the country
+        local rangeMenu = missionCommands.addSubMenu("Range " .. rangeID, countryMenu)
+        
+        -- Iterate through metagroups within the range
+        for metagroup, metagroups in pairs(metagroupsInRange) do
+            -- Create a submenu for each metagroup within the range
+            local metagroupMenu = missionCommands.addSubMenu(metagroup, rangeMenu)
+            
+            -- Add a command to spawn the metagroup (e.g., send the metagroup to the spawn function)
+            missionCommands.addCommand("Spawn " .. metagroup, metagroupMenu, spawnMetagroup, {country = country, rangeID = rangeID, metagroup = metagroup})
+			missionCommands.addCommand("Despawn " .. metagroup, metagroupMenu, despawnMetagroup, {country = country, rangeID = rangeID, metagroup = metagroup})
+			missionCommands.addCommand(metagroup .. " Weapons Free", metagroupMenu, weaponsFreeRange, {country = country, rangeID = rangeID, metagroup = metagroup})
+			missionCommands.addCommand(metagroup .. " Weapons Hold", metagroupMenu, returnFireRange, {country = country, rangeID = rangeID, metagroup = metagroup})
+        end
+    end
 end
 
-for area, groups in pairsByKeys(latn_areas)
-do
-	local rangeMenu = missionCommands.addSubMenu(latn_names[area], rangeControlMenu)
-	missionCommands.addCommand("Spawn threats", rangeMenu, spawnLatn, area)
-	missionCommands.addCommand("Despawn threats", rangeMenu, despawnLatn, area)
-	missionCommands.addCommand("Activate threats", rangeMenu, activateLatn, area)
-	missionCommands.addCommand("Deactivate threats", rangeMenu, deactivateLatn, area)
-end
 trigger.action.outText("Range Management Module initialized", 20)

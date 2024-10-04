@@ -5,7 +5,7 @@ if type(trigger) == "nil" then
     dofile("dev/dcs_mock.lua")
     basedir = "./"
 else
-    basedir = "C:/JaBoG32/_Skripte/"
+    basedir = "C:/JaBoG32_Skripte/"
 end
 
 do
