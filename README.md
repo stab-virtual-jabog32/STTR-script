@@ -26,10 +26,13 @@ Full examples are:
 
 The Dynamic Range Loader will construct a radio Menu for this like
 
+```
 Range Control
 - SWE
--- ESR01
---- Artillery Group
+    -- ESR01
+        --- Artillery Group
+        --- SA10
+```
 
 and provide
 `spawn`, `despawn`, `ROE free`, `ROE hold` for each Metagroup
@@ -67,9 +70,11 @@ To use the bombing feedback feature, you'll need to toggle it on during your fli
 
 ## Usage
 Place in a folder and load the script into your main script with.
-```
+
+```lua
 trainingFunctions = missionCommands.addSubMenu("Trainingfunctions", generalOptions);
 dofile(basedir .. "modules/bombFeedbackHook.lua")   -- initializes the Bomb Feedback Module (hook)
 ```
+
 Note that a custom submenu with the name generalOptions needs to be present.
 To enable or disable bombing feedback, use the command in the radio menu:
