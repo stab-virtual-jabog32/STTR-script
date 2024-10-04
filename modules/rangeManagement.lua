@@ -25,16 +25,12 @@
 -- ================================================================================================
 -- ==                           Functions included in this module:                               ==
 -- ================================================================================================
---  1. **spawnMetagroup(range)**: Spawns all units associated with a range.
---  2. **despawnRange(range)**: Despawns all units associated with a range.
---  3. **activateRange(range)**: Activates AI units within a range with defined ROE.
---  4. **deactivateRange(range)**: Deactivates AI units within a range.
---  5. **weaponsFreeRange(range)**: Sets the ROE for a range to weapons free.
---  6. **returnFireRange(range)**: Sets the ROE for a range to return fire.
---  7. **spawnLatn(area)**: Spawns AI units for LATN areas.
---  8. **despawnLatn(area)**: Despawns AI units for LATN areas.
---  9. **activateLatn(area)**: Activates AI units in LATN areas with combat ROE.
--- 10. **deactivateLatn(area)**: Deactivates AI units in LATN areas and sets ROE to weapon hold.
+--  1. **spawnMetagroup(data)**: Spawns all units associated with a metagroup.
+--  2. **despawnMetagroup(data)**: Despawns all units associated with a metagroup.
+--  3. **activateRange(metagroup)**: Activates AI units within a metagroup with defined ROE.
+--  4. **deactivateRange(metagroup)**: Deactivates AI units within a metagroup.
+--  5. **weaponsFreeRange(data)**: Sets the ROE for a metagroup to weapons free.
+--  6. **returnFireRange(data)**: Sets the ROE for a metagroup to return fire.
 -- 
 -- ================================================================================================
 -- ==                  How to use these functions in your mission:                               ==
@@ -46,14 +42,14 @@
 --
 -- After loading, you can call the functions directly, like this:
 --
---   spawnMetagroup("RangeName")
---   activateLatn("LATNArea")
+--   spawnMetagroup({country = "USA", rangeID = "01", metagroup = "SA10"})
+--   weaponsFreeRange({country = "USA", rangeID = "01", metagroup = "SA10"})
 -- 
 -- These functions allow you to dynamically control the AI and range management for your mission.
 --
 -- ================================================================================================
 -- ==                              Happy Training and Mission Planning!                         ==
--- ================================================================================================	
+-- ================================================================================================
 
 -- ############################################################################
 -- ###                            RANGE SPAWNING                            ###
