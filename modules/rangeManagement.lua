@@ -58,22 +58,67 @@
 -- ############################################################################
 -- ###                            RANGE SPAWNING                            ###
 -- ############################################################################
-function spawnMetagroup(metagroup)
-	for groupName, group in pairs(ranges[metagroup]) do
-		trigger.action.activateGroup(Group.getByName(groupName))
-	end
-
-	trigger.action.outText("Range Group " .. metagroup .. " spawned", 10)
+function spawnMetagroup(data)
+    -- recover country and range ID
+    local country = data.country
+    local rangeID = data.rangeID
+    local metagroup = data.metagroup
+    
+    -- Check if the metagroup exists under the correct country and rangeID
+    if ranges[country] and ranges[country][rangeID] and ranges[country][rangeID][metagroup] then
+        
+        -- Retrieve the groups associated with this metagroup
+        local groups = ranges[country][rangeID][metagroup]
+        
+        -- Use pairs() to iterate through groups (since groups are stored as key-value pairs)
+        for groupName, group in pairs(groups) do
+            -- Check if the group exists in the mission
+            local groupObject = Group.getByName(groupName)
+            if groupObject then
+				trigger.action.activateGroup(groupObject)
+            else
+                trigger.action.outText("Group not found: " .. groupName, 10)
+            end
+        end
+        
+        -- Output text for feedback after spawning the groups
+        trigger.action.outText("Spawning Range Group: " .. metagroup .. " in " .. rangeID .. " (" .. country .. ")", 10)
+    else
+        -- If no metagroup was found
+        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
+    end
 end
 
 
-function despawnMetagroup(metagroup)
-	for groupName, group in pairs(ranges[metagroup]) do
-		trigger.action.deactivateGroup(Group.getByName(groupName))
-	end
+function despawnMetagroup(data)
+    local country = data.country
+    local rangeID = data.rangeID
+    local metagroup = data.metagroup
 
-	trigger.action.outText("Range Group " .. metagroup .. " despawned", 10)
+    -- Check if the metagroup exists under the correct country and rangeID
+    if ranges[country] and ranges[country][rangeID] and ranges[country][rangeID][metagroup] then
+        -- Retrieve the groups associated with this metagroup
+        local groups = ranges[country][rangeID][metagroup]
+        
+        -- Use pairs() to iterate through groups (since groups are stored as key-value pairs)
+        for groupName, group in pairs(groups) do
+            -- Check if the group exists in the mission
+            local groupObject = Group.getByName(groupName)
+            if groupObject then
+                trigger.action.deactivateGroup(groupObject)
+            else
+                trigger.action.outText("Group not found: " .. groupName, 10)
+            end
+        end
+
+        -- Output text for feedback after despawning the groups
+        trigger.action.outText("Despawning Range Group: " .. metagroup .. " in " .. rangeID .. " (" .. country .. ")", 10)
+    else
+        -- If no metagroup was found
+        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
+    end
 end
+
 
 
 function activateRange(metagroup)
@@ -104,23 +149,67 @@ end
 -- ############################################################################
 -- ###                        RULES OF ENGAGEMENT (ROE)                     ###
 -- ############################################################################
-function weaponsFreeRange(metagroup)
-	for groupName, group in pairs(ranges[metagroup]) do
-		local controller = Group.getByName(groupName):getController()
-		controller:setOption(0, 2) -- ROE = OPEN FIRE
-	end
+function weaponsFreeRange(data)
+    local country = data.country
+    local rangeID = data.rangeID
+    local metagroup = data.metagroup
 
-	trigger.action.outText("Range Group" .. metagroup .. " ROE Weapons FREE set!", 10)
+    -- Check if the metagroup exists under the correct country and rangeID
+    if ranges[country] and ranges[country][rangeID] and ranges[country][rangeID][metagroup] then
+        -- Retrieve the groups associated with this metagroup
+        local groups = ranges[country][rangeID][metagroup]
+        
+        -- Use pairs() to iterate through groups
+        for groupName, group in pairs(groups) do
+            -- Check if the group exists in the mission
+            local groupObject = Group.getByName(groupName)
+            if groupObject then
+                local controller = groupObject:getController()
+                controller:setOption(0, 2) -- ROE = OPEN FIRE (Weapons Free)
+            else
+                trigger.action.outText("Group not found: " .. groupName, 10)
+            end
+        end
+
+        -- Output text for feedback after setting ROE to Weapons Free
+        trigger.action.outText("Range Group " .. metagroup .. " in " .. rangeID .. " (" .. country .. ") set to Weapons Free", 10)
+    else
+        -- If no metagroup was found
+        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
+    end
 end
 
 
-function returnFireRange(metagroup)
-	for groupName, group in pairs(ranges[metagroup]) do
-		local controller = Group.getByName(groupName):getController()
-		controller:setOption(0, 3)
-	end
 
-	trigger.action.outText("Range Group " .. metagroup .. " ROE return fire set", 10)
+
+function returnFireRange(data)
+    local country = data.country
+    local rangeID = data.rangeID
+    local metagroup = data.metagroup
+
+    -- Check if the metagroup exists under the correct country and rangeID
+    if ranges[country] and ranges[country][rangeID] and ranges[country][rangeID][metagroup] then
+        -- Retrieve the groups associated with this metagroup
+        local groups = ranges[country][rangeID][metagroup]
+        
+        -- Use pairs() to iterate through groups
+        for groupName, group in pairs(groups) do
+            -- Check if the group exists in the mission
+            local groupObject = Group.getByName(groupName)
+            if groupObject then
+                local controller = groupObject:getController()
+                controller:setOption(0, 3) -- ROE = RETURN FIRE
+            else
+                trigger.action.outText("Group not found: " .. groupName, 10)
+            end
+        end
+
+        -- Output text for feedback after setting ROE to Return Fire
+        trigger.action.outText("Range Group " .. metagroup .. " in " .. rangeID .. " (" .. country .. ") set to Return Fire", 10)
+    else
+        -- If no metagroup was found
+        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
+    end
 end
 
 -- add range options to menu
@@ -184,17 +273,10 @@ for country, rangesInCountry in pairs(ranges) do
             local metagroupMenu = missionCommands.addSubMenu(metagroup, rangeMenu)
             
             -- Add a command to spawn the metagroup (e.g., send the metagroup to the spawn function)
-            missionCommands.addCommand("Spawn " .. metagroup, metagroupMenu, spawnMetagroup, metagroups)
-			missionCommands.addCommand("Despawn " .. metagroup, metagroupMenu, despawnMetagroup, metagroups)
-			missionCommands.addCommand(metagroup .. " Weapons Free", metagroupMenu, weaponsFreeRange, metagroups)
-			missionCommands.addCommand(metagroup .. " Weapons Hold", metagroupMenu, returnFireRange, metagroups)
-
-			trigger.action.outText("Debug", 20)
-			if metagroups == nil then
-				trigger.action.outText("nil :(", 20)
-			else
-				trigger.action.outText(metagroups, 20)
-			end
+            missionCommands.addCommand("Spawn " .. metagroup, metagroupMenu, spawnMetagroup, {country = country, rangeID = rangeID, metagroup = metagroup})
+			missionCommands.addCommand("Despawn " .. metagroup, metagroupMenu, despawnMetagroup, {country = country, rangeID = rangeID, metagroup = metagroup})
+			missionCommands.addCommand(metagroup .. " Weapons Free", metagroupMenu, weaponsFreeRange, {country = country, rangeID = rangeID, metagroup = metagroup})
+			missionCommands.addCommand(metagroup .. " Weapons Hold", metagroupMenu, returnFireRange, {country = country, rangeID = rangeID, metagroup = metagroup})
         end
     end
 end
