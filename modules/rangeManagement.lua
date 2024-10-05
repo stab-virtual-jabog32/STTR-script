@@ -46,6 +46,11 @@
 --   weaponsFreeRange({country = "USA", rangeID = "01", metagroup = "SA10"})
 -- 
 -- These functions allow you to dynamically control the AI and range management for your mission.
+-- The script will load all units within the template and construct a radio menu based on a
+-- naming convention on the group names.
+-- The naming convention is `Country`-`RangeID`-`metagroup`-`id`
+--
+-- All units that have a similar name pattern up until metagroup will be spawned together.
 --
 -- ================================================================================================
 -- ==                              Happy Training and Mission Planning!                         ==
@@ -210,14 +215,14 @@ function returnFireRange(data)
             local groupObject = Group.getByName(groupName)
             if groupObject then
                 local controller = groupObject:getController()
-                controller:setOption(0, 3) -- ROE = RETURN FIRE
+                controller:setOption(0, 4) -- ROE = Weapons Hold
             else
                 trigger.action.outText("Group not found: " .. groupName, 10)
             end
         end
 
         -- Output text for feedback after setting ROE to Return Fire
-        trigger.action.outText("Range Group " .. metagroup .. " in " .. rangeID .. " (" .. country .. ") set to Return Fire", 10)
+        trigger.action.outText("Range Group " .. metagroup .. " in " .. rangeID .. " (" .. country .. ") set to Weapons hold", 10)
     else
         -- If no metagroup was found
         trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
