@@ -30,11 +30,20 @@ This module provides tools for managing **range units**, **LATN areas**, and **R
 
 Dynamic Radio Menu and Spawn Logic based on Naming Convention
 
+### How to use
+Open a new miz file and create your ranges and stick to the naming rule.
+Load a top level script (like the main lua here) that loads the `misc` and `utils` modules and create a top level Radio Menu
+that is called `generalOptions` (must be present for the `rangeManagement` module).
+Then execute the `rangeManagement.lua` via do file and the script should do everything automatically.
+
+### Detailed Algorithm Design & Naming Convention
 You can place Units and categorize them into
 - `Country`: The country helps to subdivide Training ranges in their country to not clutter the F10 Menu with more entries than F keys. Three letter keys (SWE)
 - `RangeID`: The range corresponds to the range areas in which the Metagroup is inside. Restricted to up to 5 capital letters or Numbers (ESR01, R92A)
 - `Metagroup`: A Metagroup can consist of one or more `DCS Groups`. This is the atomic spawn entity that will be spawned. A string like (Artillery Group)
 - `ID`: An incremental number to have unique DCS group names (01)
+
+´country´-´rangeID´-´metagroup´-´id´
 
 Full examples are:
 `SWE-ESR01-Artillery Group-2`
@@ -49,11 +58,79 @@ Range Control
     -- ESR01
         --- Artillery Group
         --- SA10
+
+-NOR
+    -- NOR
+        --- Two F16s
 ```
 
 and provide
 `spawn`, `despawn`, `ROE free`, `ROE hold` for each Metagroup
 
+The corresponding logic can be found in `rangeManagement.lua` from line 243 on.
+```lua
+for groupName, group in pairs(_DATABASE.GROUPS) do
+    -- Match the pattern and extract the four parts (Country, RangeID, MetaGroup, ID)
+    local country, rangeID, metagroup, id = string.match(groupName, "^(%u%u%u)%-(%w+)%-(.-)%-(%d%d?)$")
+    
+    if country and rangeID and metagroup and id then
+        -- Ensure that the country exists in the ranges table
+        if ranges[country] == nil then
+            ranges[country] = {}
+        end
+        
+        -- Ensure that the rangeID exists under the country
+        if ranges[country][rangeID] == nil then
+            ranges[country][rangeID] = {}
+        end
+        
+        -- Ensure that the metagroup exists under the rangeID
+        if ranges[country][rangeID][metagroup] == nil then
+            ranges[country][rangeID][metagroup] = {}
+        end
+        
+        -- Store the group under the metagroup
+        ranges[country][rangeID][metagroup][groupName] = group
+        
+	end
+end
+```
+Here we loop through all groups in the miz file and search for the string pattern that matches the described notation.
+We then assign the group into a table that categorizes them fully into country, ranges and metagroups.
+
+From line `269` on we loop through this table again top->down and create the radio menu in the same order at each for loop level
+```lua
+-- Creating the radio menu based on the hierarchical structure (Country -> RangeIDs -> metaGroups -> ID)
+local rangeControlMenu = missionCommands.addSubMenu("Range Control ...", generalOptions)
+
+-- Iterate through countries
+for country, rangesInCountry in pairs(ranges) do
+    -- Create a submenu for each country
+    local countryMenu = missionCommands.addSubMenu(country, rangeControlMenu)
+    
+    -- Iterate through ranges within the country
+    for rangeID, metagroupsInRange in pairs(rangesInCountry) do
+        -- Create a submenu for each range within the country
+        local rangeMenu = missionCommands.addSubMenu("Range " .. rangeID, countryMenu)
+        
+        -- Iterate through metagroups within the range
+        for metagroup, metagroups in pairs(metagroupsInRange) do
+            -- Create a submenu for each metagroup within the range
+            local metagroupMenu = missionCommands.addSubMenu(metagroup, rangeMenu)
+            
+            -- Add a command to spawn the metagroup (e.g., send the metagroup to the spawn function)
+            missionCommands.addCommand("Spawn " .. metagroup, metagroupMenu, spawnMetagroup, {country = country, rangeID = rangeID, metagroup = metagroup})
+			missionCommands.addCommand("Despawn " .. metagroup, metagroupMenu, despawnMetagroup, {country = country, rangeID = rangeID, metagroup = metagroup})
+			missionCommands.addCommand(metagroup .. " Weapons Free", metagroupMenu, weaponsFreeRange, {country = country, rangeID = rangeID, metagroup = metagroup})
+			missionCommands.addCommand(metagroup .. " Weapons Hold", metagroupMenu, returnFireRange, {country = country, rangeID = rangeID, metagroup = metagroup})
+        end
+    end
+end
+```
+
+We then parse the metagroup to the corresponding functions, but we parse it as a table containing also explicitly the country and rangeIDs as metadata
+in order not to have to search for it again in the functions on deconstruction and avoid naming conflicts, as we want to have the country and the rangeID
+in the spawn message.
 
 ## VJaBoG32 Bombing Feedback
 
