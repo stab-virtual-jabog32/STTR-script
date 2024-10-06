@@ -24,7 +24,7 @@ vJaBoG32bombingfeedback = false -- Start Toggle Bombing Range Feedback
 -- ############################################################################
 
 -- 1.) Load Misc. Modul first, as radio entities rely on their function definitions
-dofile(basedir .. "modules/misc.lua")               -- initializes a module that defines misc. functions
+dofile(basedir .. "sttr-modules/misc.lua")               -- initializes a module that defines misc. functions
 
 -- 2.) Init the basic radio menu tree at root, all other modules will fill up the radio menue on their own
 generalOptions = missionCommands.addSubMenu("JaBoG32 General Options");
@@ -36,12 +36,12 @@ generalOptions = missionCommands.addSubMenu("JaBoG32 General Options");
 -- 4.) Load all the modules that contain hooks, consider specifically them when assessing performance
 -- Initialize the Training Functions Sub Menu for Hook Modules
 trainingFunctions = missionCommands.addSubMenu("Trainingfunctions", generalOptions);
-dofile(basedir .. "modules/bombFeedbackHook.lua")   -- initializes the Bomb Feedback Module (hook)
+dofile(basedir .. "sttr-modules/bombFeedbackHook.lua")   -- initializes the Bomb Feedback Module (hook)
 
 
 -- 5.) Load all the remaining modules
-dofile(basedir .. "modules/utils.lua")              -- initializes utility module
-dofile(basedir .. "modules/rangeManagement.lua")    -- initializes Range Management Module
+dofile(basedir .. "sttr-modules/utils.lua")              -- initializes utility module
+dofile(basedir .. "sttr-modules/rangeManagement.lua")    -- initializes Range Management Module
 
 
 -- ############################################################################
