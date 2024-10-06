@@ -1,3 +1,22 @@
+# Table of Contents
+
+- [STTR Script - VJaBoG32](#sttr-script---vjabog32)
+- [VJaBoG32 Range Management Module](#vjabog32-range-management-module)
+  - [Features](#features)
+  - [How to use](#how-to-use)
+  - [Detailed Algorithm Design & Naming Convention](#detailed-algorithm-design--naming-convention)
+- [VJaBoG32 Bombing Feedback](#vjabog32-bombing-feedback)
+  - [Overview](#overview)
+  - [Author](#author)
+  - [Purpose](#purpose)
+  - [Getting Started](#getting-started)
+- [Key Classes & Functions](#key-classes--functions)
+  - [Bomb Class](#bomb-class)
+  - [togglevJaBoG32bombingfeedback()](#togglevjabog32bombingfeedback)
+  - [BombEventHandler:onEvent(event)](#bombeventhandleroneventevent)
+- [Usage](#usage)
+
+
 # STTR Script - VJaBoG32
 
 This is the Script for our Training TEmplate

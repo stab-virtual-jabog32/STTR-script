@@ -286,9 +286,9 @@ for country, rangesInCountry in pairs(ranges) do
             
             -- Add a command to spawn the metagroup (e.g., send the metagroup to the spawn function)
             missionCommands.addCommand("Spawn " .. metagroup, metagroupMenu, spawnMetagroup, {country = country, rangeID = rangeID, metagroup = metagroup})
-			missionCommands.addCommand("Despawn " .. metagroup, metagroupMenu, despawnMetagroup, {country = country, rangeID = rangeID, metagroup = metagroup})
-			missionCommands.addCommand(metagroup .. " Weapons Free", metagroupMenu, weaponsFreeRange, {country = country, rangeID = rangeID, metagroup = metagroup})
-			missionCommands.addCommand(metagroup .. " Weapons Hold", metagroupMenu, returnFireRange, {country = country, rangeID = rangeID, metagroup = metagroup})
+            missionCommands.addCommand("Despawn " .. metagroup, metagroupMenu, despawnMetagroup, {country = country, rangeID = rangeID, metagroup = metagroup})
+            missionCommands.addCommand(metagroup .. " Weapons Free", metagroupMenu, weaponsFreeRange, {country = country, rangeID = rangeID, metagroup = metagroup})
+            missionCommands.addCommand(metagroup .. " Weapons Hold", metagroupMenu, returnFireRange, {country = country, rangeID = rangeID, metagroup = metagroup})
         end
     end
 end
