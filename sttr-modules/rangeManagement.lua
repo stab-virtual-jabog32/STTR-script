@@ -124,16 +124,17 @@ local function main()
             local airframeMenu = missionCommands.addSubMenu(airframe, rangeMenu)
             
             for sizeOfFlight, _ in pairs(sizesInAirframe) do
-                missionCommands.addCommand("Spawn " .. sizeOfFlight, airframeMenu, function() 
+                local spawnMenu = missionCommands.addSubMenu(sizeOfFlight, airframeMenu)
+                missionCommands.addCommand("Spawn " .. airframe .. " " .. sizeOfFlight, spawnMenu, function() 
                     rm:spawn({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
                 end)
-                missionCommands.addCommand("Despawn " .. sizeOfFlight, airframeMenu, function()
+                missionCommands.addCommand("Despawn " .. airframe .. " " .. sizeOfFlight, spawnMenu, function()
                     rm:despawn({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
                 end)
-                missionCommands.addCommand(sizeOfFlight .. " Weapons Free", airframeMenu, function()
+                missionCommands.addCommand(airframe .. " " .. sizeOfFlight .. " Weapons Free", spawnMenu, function()
                     rm:weaponsFree({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
                 end)
-                missionCommands.addCommand(sizeOfFlight .. " Weapons Hold", airframeMenu, function()
+                missionCommands.addCommand(airframe .. " " .. sizeOfFlight .. " Weapons Hold", spawnMenu, function()
                     rm:returnFire({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
                 end)
             end
@@ -268,22 +269,11 @@ end
 
 -- Generic spawn function
 function RangeManager:spawn(data)
-    -- Add debug to check if the function is called with correct data
-    trigger.action.outText("Spawn function called with rangeType: " .. tostring(data.rangeType), 10)
-    
-    -- Check for the existence of data.rangeType
-    if not data.rangeType then
-        trigger.action.outText("Error: rangeType is missing in data!", 10)
-        return
-    end
-
     -- if it is a regular group, call spawnMetagroup directly
     if data.rangeType == "regular" then
-        trigger.action.outText("Spawning regular group", 10)
         self:spawnMetagroup(data)
     -- if it is an a2a range, handle it a bit differently for a proper spawn message
     elseif data.rangeType == "a2a" then
-        trigger.action.outText("Spawning A2A group", 10)
         local rangeID = data.rangeID
         local airframe = data.airframe
         local sizeOfFlight = data.sizeOfFlight
