@@ -114,6 +114,10 @@ A2A Ranges
     - Weapons Hold
 ```
 
+### Flow
+![Range Management Flow Diagram](doc/rangeManagement/rangeManagementFlow.png)
+
+
 ### Input Parsing for Functions
 The module's functions are structured to accept input as tables containing metadata (country, rangeID, metagroup), which avoids having to reconstruct this data inside each function. This makes the interface clean and avoids searching through the parsed data again for the necessary fields.
 We use these inside anonymous function blocks in the missionCommands.addCommand menu.
