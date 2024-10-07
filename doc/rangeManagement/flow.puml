@@ -1,0 +1,88 @@
+@startuml
+skinparam backgroundColor black
+skinparam shadowing false
+skinparam defaultFontColor white
+skinparam arrowColor white
+skinparam activityBackgroundColor black
+skinparam activityBorderColor white
+skinparam startBackgroundColor white
+skinparam startFontColor white
+skinparam endBackgroundColor white
+skinparam endFontColor white
+
+start
+:Start Range Management Logic;
+
+:Initialize RangeManager Object;
+
+:Create range control structure;
+:Create A2A range structure;
+
+:Loop over mission groups in _DATABASE;
+
+if (Is group A2A?) then (yes)
+    :Add group to A2A range table;
+    :rangeID, airframe, sizeOfFlight;
+else (no)
+    :Add group to regular range table;
+    :country, rangeID, metagroup, id;
+endif
+
+:Create Radio Menus;
+
+:Create submenus for country, range, metagroup;
+:Add Spawn, Despawn, ROE commands;
+
+if (Spawn Command Called?) then (yes)
+    :Check rangeType;
+    if (rangeType == regular) then (yes)
+        :Call spawnMetagroup(data);
+        :Trigger group spawning;
+    else (no)
+        :Call spawn for A2A group;
+        :Trigger A2A group spawning;
+    endif
+else (no)
+    :Wait for other inputs;
+endif
+
+if (Despawn Command Called?) then (yes)
+    :Check rangeType;
+    if (rangeType == regular) then (yes)
+        :Call despawnMetagroup(data);
+        :Trigger group despawning;
+    else (no)
+        :Call despawn for A2A group;
+        :Trigger A2A group despawning;
+    endif
+else (no)
+    :Wait for other inputs;
+endif
+
+if (Weapons Free Command?) then (yes)
+    :Check rangeType;
+    if (rangeType == regular) then (yes)
+        :Call weaponsFreeRange(data);
+        :Set group to Weapons Free;
+    else (no)
+        :Set A2A group to Weapons Free;
+    endif
+else (no)
+    :Wait for other inputs;
+endif
+
+if (Return Fire Command?) then (yes)
+    :Check rangeType;
+    if (rangeType == regular) then (yes)
+        :Call returnFireRange(data);
+        :Set group to Weapons Hold;
+    else (no)
+        :Set A2A group to Weapons Hold;
+    endif
+else (no)
+    :Wait for other inputs;
+endif
+
+:End Range Management Flow;
+stop
+@enduml
