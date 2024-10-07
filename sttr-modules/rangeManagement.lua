@@ -86,7 +86,7 @@ local function main()
     end
 
     -- Create radio menu for regular range control
-    local rangeControlMenu = missionCommands.addSubMenu("Range Control")
+    local rangeControlMenu = missionCommands.addSubMenu("A2G Ranges")
 
     for country, rangesInCountry in pairs(rm.ranges) do
         local countryMenu = missionCommands.addSubMenu(country, rangeControlMenu)
@@ -131,12 +131,12 @@ local function main()
                 missionCommands.addCommand("Despawn " .. airframe .. " ".. sizeOfFlight, spawnMenu, function()
                     rm:despawn({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
                 end)
-                missionCommands.addCommand(airframe .. " ".. sizeOfFlight .. " Weapons Free", spawnMenu, function()
-                    rm:weaponsFree({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
-                end)
-                missionCommands.addCommand(airframe .. " ".. sizeOfFlight .. " Weapons Hold", spawnMenu, function()
-                    rm:returnFire({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
-                end)
+--                missionCommands.addCommand(airframe .. " ".. sizeOfFlight .. " Weapons Free", spawnMenu, function()  -- ROE Settings brauchen wir für die A2A Ranges nicht, oder? 
+--                   rm:weaponsFree({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
+--              end)
+--                missionCommands.addCommand(airframe .. " ".. sizeOfFlight .. " Weapons Hold", spawnMenu, function()
+--                    rm:returnFire({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
+--                end)
             end
         end
     end
