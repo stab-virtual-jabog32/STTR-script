@@ -1,7 +1,7 @@
 
 # VJaBoG32 Range Management Module
 
-This module provides tools for managing **range units**, **LATN areas**, and **Rules of Engagement (ROE)** in DCS missions. It is designed for dynamic control of AI units on training ranges, enabling mission builders to spawn, despawn, activate, deactivate units, and manage their ROE through F10 radio menus based on naming conventions.
+This module provides tools for managing **range units** and **Rules of Engagement (ROE)** in DCS missions. It is designed for dynamic control of AI units on training ranges, enabling mission builders to spawn, despawn, activate, deactivate units, and manage their ROE through F10 radio menus based on naming conventions.
 
 ## General Idea
 
@@ -10,6 +10,8 @@ The **VJaBoG32 Range Management Module** allows you to control range areas dynam
 - **A2A (Air-to-Air) Ranges**: Special air-to-air combat ranges with different configurations for airframes and flight sizes.
 
 The script automatically parses the unit names in the mission, creates a hierarchical radio menu for range control, and lets you perform operations like spawning and setting ROE for each group via the menu.
+It has been refactored to objec oriented design, as this allows instantiating local scope variables and easy extension (like we did for A2A).
+It also allows to have the relevant code on top of the .lua file and the support functions below which makes it easier to read.
 
 ## Flow of the Module
 
@@ -139,7 +141,7 @@ The code is structured into the following main components:
 
 ## How to Use for Mission Builders
 
-Prerequisite
+Prerequisites
 - MIST
 - a top level radio menu called `generalOptons`
 
