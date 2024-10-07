@@ -86,7 +86,7 @@ local function main()
     end
 
     -- Create radio menu for regular range control
-    local rangeControlMenu = missionCommands.addSubMenu("Range Control")
+    local rangeControlMenu = missionCommands.addSubMenu("A2G Range Control")
 
     for country, rangesInCountry in pairs(rm.ranges) do
         local countryMenu = missionCommands.addSubMenu(country, rangeControlMenu)
@@ -115,7 +115,7 @@ local function main()
     end
 
     -- Create radio menu for A2A range control
-    local aaRangeControlMenu = missionCommands.addSubMenu("A2A Ranges")
+    local aaRangeControlMenu = missionCommands.addSubMenu("A2A Range Control")
 
     for rangeID, airframesInRange in pairs(aaRanges) do
         local rangeMenu = missionCommands.addSubMenu("Range " .. rangeID, aaRangeControlMenu)
@@ -130,12 +130,6 @@ local function main()
                 end)
                 missionCommands.addCommand("Despawn " .. airframe .. " ".. sizeOfFlight, spawnMenu, function()
                     rm:despawn({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
-                end)
-                missionCommands.addCommand(airframe .. " ".. sizeOfFlight .. " Weapons Free", spawnMenu, function()
-                    rm:weaponsFree({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
-                end)
-                missionCommands.addCommand(airframe .. " ".. sizeOfFlight .. " Weapons Hold", spawnMenu, function()
-                    rm:returnFire({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
                 end)
             end
         end
