@@ -52,8 +52,9 @@
 --  Main Range Management Logic and Algo
 -- =====================================
 
--- Main Script starts here
+-- Forward declare the RangeManager class and aaRanges
 local RangeManager
+local aaRanges = {}
 
 -- Main Script (Runs after all methods are defined)
 local function main()
@@ -64,190 +65,196 @@ local function main()
 
     -- Populate the ranges data structure from mission group names
     for groupName, group in pairs(_DATABASE.GROUPS) do
-        local country, rangeID, metagroup, id = string.match(groupName, "^(%u%u%u)%-(%w+)%-(.-)%-(%d%d?)$")
+        -- Check for the A2A range pattern first
+        local prefix, rangeID, airframe, sizeOfFlight = string.match(groupName, "^(A2A)%-(%w+)%-(%w+)%-(.+)$")
         
-        if country and rangeID and metagroup and id then
-            if not rm.ranges[country] then rm.ranges[country] = {} end
-            if not rm.ranges[country][rangeID] then rm.ranges[country][rangeID] = {} end
-            if not rm.ranges[country][rangeID][metagroup] then rm.ranges[country][rangeID][metagroup] = {} end
+        if prefix and rangeID and airframe and sizeOfFlight then
+            -- Ensure that the aaRanges table is constructed properly
+            if not aaRanges[rangeID] then aaRanges[rangeID] = {} end
+            if not aaRanges[rangeID][airframe] then aaRanges[rangeID][airframe] = {} end
+            aaRanges[rangeID][airframe][sizeOfFlight] = group
+        else
+            -- Fall back to the regular range pattern
+            local country, rangeID, metagroup, id = string.match(groupName, "^(%u%u%u)%-(%w+)%-(.-)%-(%d%d?)$")
             
-            rm.ranges[country][rangeID][metagroup][groupName] = group
-        end
-    end
-
-    -- Create radio menu for range control
-    local rangeControlMenu = missionCommands.addSubMenu("Range Control")
-
-    for country, rangesInCountry in pairs(rm.ranges) do
-        local countryMenu = missionCommands.addSubMenu(country, rangeControlMenu)
-        
-        for rangeID, metagroupsInRange in pairs(rangesInCountry) do
-            local rangeMenu = missionCommands.addSubMenu("Range " .. rangeID, countryMenu)
-            
-            for metagroup, _ in pairs(metagroupsInRange) do
-                local metagroupMenu = missionCommands.addSubMenu(metagroup, rangeMenu)
+            if country and rangeID and metagroup and id then
+                if not rm.ranges[country] then rm.ranges[country] = {} end
+                if not rm.ranges[country][rangeID] then rm.ranges[country][rangeID] = {} end
+                if not rm.ranges[country][rangeID][metagroup] then rm.ranges[country][rangeID][metagroup] = {} end
                 
-                missionCommands.addCommand("Spawn " .. metagroup, metagroupMenu, function() rm:spawnMetagroup({country = country, rangeID = rangeID, metagroup = metagroup}) end)
-                missionCommands.addCommand("Despawn " .. metagroup, metagroupMenu, function() rm:despawnMetagroup({country = country, rangeID = rangeID, metagroup = metagroup}) end)
-                missionCommands.addCommand(metagroup .. " Weapons Free", metagroupMenu, function() rm:weaponsFreeRange({country = country, rangeID = rangeID, metagroup = metagroup}) end)
-                missionCommands.addCommand(metagroup .. " Weapons Hold", metagroupMenu, function() rm:returnFireRange({country = country, rangeID = rangeID, metagroup = metagroup}) end)
+                rm.ranges[country][rangeID][metagroup][groupName] = group
             end
         end
     end
+
+-- Create radio menu for regular range control
+local rangeControlMenu = missionCommands.addSubMenu("Range Control")
+
+for country, rangesInCountry in pairs(rm.ranges) do
+    local countryMenu = missionCommands.addSubMenu(country, rangeControlMenu)
+    
+    for rangeID, metagroupsInRange in pairs(rangesInCountry) do
+        local rangeMenu = missionCommands.addSubMenu("Range " .. rangeID, countryMenu)
+        
+        for metagroup, _ in pairs(metagroupsInRange) do
+            local metagroupMenu = missionCommands.addSubMenu(metagroup, rangeMenu)
+            
+            missionCommands.addCommand("Spawn " .. metagroup, metagroupMenu, rm.spawn, {rangeType = "regular", country = country, rangeID = rangeID, metagroup = metagroup})
+            missionCommands.addCommand("Despawn " .. metagroup, metagroupMenu, rm.despawn, {rangeType = "regular", country = country, rangeID = rangeID, metagroup = metagroup})
+            missionCommands.addCommand(metagroup .. " Weapons Free", metagroupMenu, rm.weaponsFree, {rangeType = "regular", country = country, rangeID = rangeID, metagroup = metagroup})
+            missionCommands.addCommand(metagroup .. " Weapons Hold", metagroupMenu, rm.returnFire, {rangeType = "regular", country = country, rangeID = rangeID, metagroup = metagroup})
+        end
+    end
+end
+
+-- Create radio menu for A2A range control
+local aaRangeControlMenu = missionCommands.addSubMenu("A2A Ranges")
+
+for rangeID, airframesInRange in pairs(aaRanges) do
+    local rangeMenu = missionCommands.addSubMenu("Range " .. rangeID, aaRangeControlMenu)
+    
+    for airframe, sizesInAirframe in pairs(airframesInRange) do
+        local airframeMenu = missionCommands.addSubMenu(airframe, rangeMenu)
+        
+        for sizeOfFlight, _ in pairs(sizesInAirframe) do
+            missionCommands.addCommand("Spawn " .. sizeOfFlight, airframeMenu, rm.spawn, {rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
+            missionCommands.addCommand("Despawn " .. sizeOfFlight, airframeMenu, rm.despawn, {rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
+            missionCommands.addCommand(sizeOfFlight .. " Weapons Free", airframeMenu, rm.weaponsFree, {rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
+            missionCommands.addCommand(sizeOfFlight .. " Weapons Hold", airframeMenu, rm.returnFire, {rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
+        end
+    end
+end
 
     trigger.action.outText("Range Management Module initialized", 20)
 end
 
 
--- ==============================
+-- ==========================
 --  RangeManager Class Definition
--- ==============================
+-- ==========================
+
 RangeManager = {}
 RangeManager.__index = RangeManager
 
 function RangeManager:new()
     local self = setmetatable({}, RangeManager)
-    
-    -- Class-level variables (could be replaced with more sophisticated data tracking if needed)
     self.groupStatus = {}
     self.ranges = {}
-    
     return self
 end
 
--- ==============================
---           Methods()
--- ==============================
--- Spawns all units associated with a metagroup
-function RangeManager:spawnMetagroup(data)
-    local country = data.country
-    local rangeID = data.rangeID
-    local metagroup = data.metagroup
+-- Generic spawn function
+function RangeManager:spawn(data)
+    -- Add debug to check if the function is called with correct data
+    trigger.action.outText("Spawn function called with rangeType: " .. tostring(data.rangeType), 10)
     
-    if self.ranges[country] and self.ranges[country][rangeID] and self.ranges[country][rangeID][metagroup] then
-        local groups = self.ranges[country][rangeID][metagroup]
+    -- Check for the existence of data.rangeType
+    if not data.rangeType then
+        trigger.action.outText("Error: rangeType is missing in data!", 10)
+        return
+    end
+
+    -- if it is a regular group, call spawnMetagroup directly
+    if data.rangeType == "regular" then
+        trigger.action.outText("Spawning regular group", 10)
+        self:spawnMetagroup(data)
+    -- if it is an a2a range, handle it a bit differently for a proper spawn message
+    elseif data.rangeType == "a2a" then
+        trigger.action.outText("Spawning A2A group", 10)
+        local rangeID = data.rangeID
+        local airframe = data.airframe
+        local sizeOfFlight = data.sizeOfFlight
         
-        for groupName, _ in pairs(groups) do
+        if aaRanges[rangeID] and aaRanges[rangeID][airframe] and aaRanges[rangeID][airframe][sizeOfFlight] then
+            local groupName = aaRanges[rangeID][airframe][sizeOfFlight]
             if self.groupStatus[groupName] == nil or not self.groupStatus[groupName].active then
-                local groupObject = Group.getByName(groupName)
-                if groupObject then
-                    trigger.action.activateGroup(groupObject)
-                else
-                    mist.respawnGroup(groupName, true)
-                end
+                mist.respawnGroup(groupName, true)
                 self.groupStatus[groupName] = { active = true }
+                trigger.action.outText("Spawning A2A Group: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
             else
                 trigger.action.outText("Group " .. groupName .. " is already active.", 10)
             end
+        else
+            trigger.action.outText("A2A Range Group not found for spawning: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
         end
-        
-        trigger.action.outText("Spawning Range Group: " .. metagroup .. " in " .. rangeID .. " (" .. country .. ")", 10)
     else
-        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
+        trigger.action.outText("Error: Invalid rangeType provided - " .. tostring(data.rangeType), 10)
     end
 end
 
--- Despawns all units associated with a metagroup
-function RangeManager:despawnMetagroup(data)
-    local country = data.country
-    local rangeID = data.rangeID
-    local metagroup = data.metagroup
-    
-    if self.ranges[country] and self.ranges[country][rangeID] and self.ranges[country][rangeID][metagroup] then
-        local groups = self.ranges[country][rangeID][metagroup]
-        
-        for groupName, _ in pairs(groups) do
-            if self.groupStatus[groupName] and self.groupStatus[groupName].active then
-                local groupObject = Group.getByName(groupName)
-                if groupObject then
-                    trigger.action.deactivateGroup(groupObject)
-                    self.groupStatus[groupName].active = false
-                else
-                    trigger.action.outText("Group not found: " .. groupName, 10)
-                end
+
+-- Generic despawn function
+function RangeManager:despawn(data)
+    if data.rangeType == "regular" then
+        self:despawnMetagroup(data)
+    elseif data.rangeType == "a2a" then
+        local rangeID = data.rangeID
+        local airframe = data.airframe
+        local sizeOfFlight = data.sizeOfFlight
+
+        if aaRanges[rangeID] and aaRanges[rangeID][airframe] and aaRanges[rangeID][airframe][sizeOfFlight] then
+            local groupName = aaRanges[rangeID][airframe][sizeOfFlight]
+            local groupObject = Group.getByName(groupName)
+            if groupObject then
+                trigger.action.deactivateGroup(groupObject)
+                self.groupStatus[groupName].active = false
+                trigger.action.outText("Despawning A2A Group: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
             else
-                trigger.action.outText("Group " .. groupName .. " is already inactive or not found.", 10)
+                trigger.action.outText("A2A Group not found for despawning: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
             end
+        else
+            trigger.action.outText("A2A Range Group not found for despawning: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
         end
-        
-        trigger.action.outText("Despawning Range Group: " .. metagroup .. " in " .. rangeID .. " (" .. country .. ")", 10)
-    else
-        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
     end
 end
 
--- Activates the AI units in a metagroup with Return Fire ROE
-function RangeManager:activateRange(metagroup)
-    for groupName, _ in pairs(self.ranges[metagroup]) do
-        local controller = Group.getByName(groupName):getController()
-        controller:setOnOff(true)
-        controller:setOption(0, 3) -- ROE = RETURN FIRE
-        controller:setOption(9, 2) -- ALARM_STATE = RED
-    end
-    
-    trigger.action.outText("Range Group " .. metagroup .. " activated", 10)
-end
+-- Generic ROE Weapons Free function
+function RangeManager:weaponsFree(data)
+    if data.rangeType == "regular" then
+        self:weaponsFreeRange(data)
+    elseif data.rangeType == "a2a" then
+        local rangeID = data.rangeID
+        local airframe = data.airframe
+        local sizeOfFlight = data.sizeOfFlight
 
--- Deactivates the AI units in a metagroup
-function RangeManager:deactivateRange(metagroup)
-    for groupName, _ in pairs(self.ranges[metagroup]) do
-        local controller = Group.getByName(groupName):getController()
-        controller:setOption(0, 4) -- ROE = WEAPON HOLD
-        controller:setOnOff(false)
-    end
-    
-    trigger.action.outText("Range Group " .. metagroup .. " deactivated", 10)
-end
-
--- Sets ROE to Weapons Free for a metagroup
-function RangeManager:weaponsFreeRange(data)
-    local country = data.country
-    local rangeID = data.rangeID
-    local metagroup = data.metagroup
-    
-    if self.ranges[country] and self.ranges[country][rangeID] and self.ranges[country][rangeID][metagroup] then
-        local groups = self.ranges[country][rangeID][metagroup]
-        
-        for groupName, _ in pairs(groups) do
+        if aaRanges[rangeID] and aaRanges[rangeID][airframe] and aaRanges[rangeID][airframe][sizeOfFlight] then
+            local groupName = aaRanges[rangeID][airframe][sizeOfFlight]
             local groupObject = Group.getByName(groupName)
             if groupObject then
                 local controller = groupObject:getController()
                 controller:setOption(0, 2) -- ROE = OPEN FIRE (Weapons Free)
+                trigger.action.outText("Setting A2A Group to Weapons Free: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
             else
-                trigger.action.outText("Group not found: " .. groupName, 10)
+                trigger.action.outText("A2A Group not found for Weapons Free: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
             end
+        else
+            trigger.action.outText("A2A Range Group not found for Weapons Free: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
         end
-        
-        trigger.action.outText("Range Group " .. metagroup .. " in " .. rangeID .. " (" .. country .. ") set to Weapons Free", 10)
-    else
-        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
     end
 end
 
--- Sets ROE to Return Fire for a metagroup
-function RangeManager:returnFireRange(data)
-    local country = data.country
-    local rangeID = data.rangeID
-    local metagroup = data.metagroup
-    
-    if self.ranges[country] and self.ranges[country][rangeID] and self.ranges[country][rangeID][metagroup] then
-        local groups = self.ranges[country][rangeID][metagroup]
-        
-        for groupName, _ in pairs(groups) do
+-- Generic ROE Return Fire function
+function RangeManager:returnFire(data)
+    if data.rangeType == "regular" then
+        self:returnFireRange(data)
+    elseif data.rangeType == "a2a" then
+        local rangeID = data.rangeID
+        local airframe = data.airframe
+        local sizeOfFlight = data.sizeOfFlight
+
+        if aaRanges[rangeID] and aaRanges[rangeID][airframe] and aaRanges[rangeID][airframe][sizeOfFlight] then
+            local groupName = aaRanges[rangeID][airframe][sizeOfFlight]
             local groupObject = Group.getByName(groupName)
             if groupObject then
                 local controller = groupObject:getController()
                 controller:setOption(0, 4) -- ROE = Weapons Hold
+                trigger.action.outText("Setting A2A Group to Weapons Hold: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
             else
-                trigger.action.outText("Group not found: " .. groupName, 10)
+                trigger.action.outText("A2A Group not found for Weapons Hold: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
             end
+        else
+            trigger.action.outText("A2A Range Group not found for Weapons Hold: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
         end
-        
-        trigger.action.outText("Range Group " .. metagroup .. " in " .. rangeID .. " (" .. country .. ") set to Weapons Hold", 10)
-    else
-        trigger.action.outText("Range Group " .. metagroup .. " not found in Range " .. rangeID .. " (" .. country .. ")", 10)
     end
 end
-
--- Call the main function
 main()
