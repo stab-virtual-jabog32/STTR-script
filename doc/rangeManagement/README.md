@@ -115,7 +115,7 @@ A2A Ranges
 ```
 
 ### Flow
-![Range Management Flow Diagram](doc/rangeManagement/rangeManagementFlow.png)
+![Range Management Flow Diagram](rangeManagementFlow.png)
 
 
 ### Input Parsing for Functions
