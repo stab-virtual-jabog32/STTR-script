@@ -50,9 +50,8 @@
 --  Main Range Management Logic and Algo
 -- =====================================
 
--- Forward declare the RangeManager class and aaRanges
+-- Forward declare the RangeManager class
 local RangeManager
-local aaRanges = {}
 
 -- Main Script (Runs after all methods are defined)
 local function main()
@@ -68,9 +67,9 @@ local function main()
         
         if prefix and rangeID and airframe and sizeOfFlight then
             -- Ensure that the aaRanges table is constructed properly
-            if not aaRanges[rangeID] then aaRanges[rangeID] = {} end
-            if not aaRanges[rangeID][airframe] then aaRanges[rangeID][airframe] = {} end
-            aaRanges[rangeID][airframe][sizeOfFlight] = groupName
+            if not rm.aaRanges[rangeID] then rm.aaRanges[rangeID] = {} end
+            if not rm.aaRanges[rangeID][airframe] then rm.aaRanges[rangeID][airframe] = {} end
+            rm.aaRanges[rangeID][airframe][sizeOfFlight] = groupName
         else
             -- Fall back to the regular range pattern
             local country, rangeID, metagroup, id = string.match(groupName, "^(%u%u%u)%-(%w+)%-(.-)%-(%d%d?)$")
@@ -117,9 +116,8 @@ local function main()
     -- Create radio menu for A2A range control
     local aaRangeControlMenu = missionCommands.addSubMenu("A2A Range Control")
 
-    for rangeID, airframesInRange in pairs(aaRanges) do
+    for rangeID, airframesInRange in pairs(rm.aaRanges) do
         local rangeMenu = missionCommands.addSubMenu("Range " .. rangeID, aaRangeControlMenu)
-        
         for airframe, sizesInAirframe in pairs(airframesInRange) do
             local airframeMenu = missionCommands.addSubMenu(airframe, rangeMenu)
             
@@ -133,6 +131,7 @@ local function main()
                 end)
             end
         end
+        missionCommands.addCommand("Clear all spawns in " .. rangeID, rangeMenu, function() rm:clearAllA2A(rangeID) end)
     end
 
     trigger.action.outText("Range Management Module initialized", 20)
@@ -150,6 +149,7 @@ function RangeManager:new()
     local self = setmetatable({}, RangeManager)
     self.groupStatus = {}
     self.ranges = {}
+    self.aaRanges = {}
     return self
 end
 
@@ -272,8 +272,8 @@ function RangeManager:spawn(data)
         local airframe = data.airframe
         local sizeOfFlight = data.sizeOfFlight
         
-        if aaRanges[rangeID] and aaRanges[rangeID][airframe] and aaRanges[rangeID][airframe][sizeOfFlight] then
-            local groupName = aaRanges[rangeID][airframe][sizeOfFlight]
+        if self.aaRanges[rangeID] and self.aaRanges[rangeID][airframe] and self.aaRanges[rangeID][airframe][sizeOfFlight] then
+            local groupName = self.aaRanges[rangeID][airframe][sizeOfFlight]
             if self.groupStatus[groupName] == nil or not self.groupStatus[groupName].active then
                 mist.respawnGroup(groupName, true)
                 self.groupStatus[groupName] = { active = true }
@@ -298,8 +298,8 @@ function RangeManager:despawn(data)
         local airframe = data.airframe
         local sizeOfFlight = data.sizeOfFlight
 
-        if aaRanges[rangeID] and aaRanges[rangeID][airframe] and aaRanges[rangeID][airframe][sizeOfFlight] then
-            local groupName = aaRanges[rangeID][airframe][sizeOfFlight]
+        if self.aaRanges[rangeID] and self.aaRanges[rangeID][airframe] and self.aaRanges[rangeID][airframe][sizeOfFlight] then
+            local groupName = self.aaRanges[rangeID][airframe][sizeOfFlight]
             local groupObject = Group.getByName(groupName)
             if groupObject then
                 trigger.action.deactivateGroup(groupObject)
@@ -323,8 +323,8 @@ function RangeManager:weaponsFree(data)
         local airframe = data.airframe
         local sizeOfFlight = data.sizeOfFlight
 
-        if aaRanges[rangeID] and aaRanges[rangeID][airframe] and aaRanges[rangeID][airframe][sizeOfFlight] then
-            local groupName = aaRanges[rangeID][airframe][sizeOfFlight]
+        if self.aaRanges[rangeID] and self.aaRanges[rangeID][airframe] and self.aaRanges[rangeID][airframe][sizeOfFlight] then
+            local groupName = self.aaRanges[rangeID][airframe][sizeOfFlight]
             local groupObject = Group.getByName(groupName)
             if groupObject then
                 local controller = groupObject:getController()
@@ -348,8 +348,8 @@ function RangeManager:returnFire(data)
         local airframe = data.airframe
         local sizeOfFlight = data.sizeOfFlight
 
-        if aaRanges[rangeID] and aaRanges[rangeID][airframe] and aaRanges[rangeID][airframe][sizeOfFlight] then
-            local groupName = aaRanges[rangeID][airframe][sizeOfFlight]
+        if self.aaRanges[rangeID] and self.aaRanges[rangeID][airframe] and self.aaRanges[rangeID][airframe][sizeOfFlight] then
+            local groupName = self.aaRanges[rangeID][airframe][sizeOfFlight]
             local groupObject = Group.getByName(groupName)
             if groupObject then
                 local controller = groupObject:getController()
@@ -364,5 +364,18 @@ function RangeManager:returnFire(data)
     end
 end
 
+-- clear all Function
+function RangeManager:clearAllA2A(rangeID)
+-- loop through all airframes and sizes within that
+for airframe, sizes in pairs(self.aaRanges[rangeID]) do
+    for size, groupName in pairs(sizes) do
+        if self.groupStatus[groupName].active then
+            local groupObject = Group.getByName(groupName)
+            trigger.action.deactivateGroup(groupObject)
+            self.groupStatus[groupName].active = false
+        end
+    end
+end
+end
 -- Call the main function
 main()
