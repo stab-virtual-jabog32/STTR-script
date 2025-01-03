@@ -116,22 +116,48 @@ local function main()
     -- Create radio menu for A2A range control
     local aaRangeControlMenu = missionCommands.addSubMenu("A2A Range Control")
 
+    local rangeArray = {}
     for rangeID, airframesInRange in pairs(rm.aaRanges) do
-        local rangeMenu = missionCommands.addSubMenu("Range " .. rangeID, aaRangeControlMenu)
-        for airframe, sizesInAirframe in pairs(airframesInRange) do
-            local airframeMenu = missionCommands.addSubMenu(airframe, rangeMenu)
-            
-            for sizeOfFlight, _ in pairs(sizesInAirframe) do
-                local spawnMenu = missionCommands.addSubMenu(sizeOfFlight, airframeMenu)
-                missionCommands.addCommand("Spawn " .. airframe .. " ".. sizeOfFlight, spawnMenu, function() 
-                    rm:spawn({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
+        table.insert(rangeArray, {rangeID = rangeID, airframesInRange = airframesInRange})
+    end
+    table.sort(rangeArray, function(a, b)
+        return a.rangeID < b.rangeID  -- Ascending order by name 
+    end)
+
+    for _, range in ipairs(rangeArray) do
+        local rangeMenu = missionCommands.addSubMenu("Range " .. range.rangeID, aaRangeControlMenu)
+
+        local airframeArray = {}
+        for airframe, sizesInAirframe in pairs(range.airframesInRange) do
+            table.insert(airframeArray, {airframe = airframe, sizesInAirframe = sizesInAirframe})
+        end
+        table.sort(airframeArray, function(a, b)
+            return a.airframe < b.airframe  -- Ascending order by name 
+        end)
+        
+        for _, airframe in ipairs(airframeArray) do
+            local airframeMenu = missionCommands.addSubMenu(airframe.airframe, rangeMenu)
+
+            local sizeOfFlightArray = {}
+            for sizeOfFlight, _ in pairs(airframe.sizesInAirframe) do
+                table.insert(sizeOfFlightArray, {sizeOfFlight = sizeOfFlight})
+            end
+            table.sort(sizeOfFlightArray, function(a, b)
+                return a.sizeOfFlight < b.sizeOfFlight  -- Ascending order by name 
+            end)            
+
+            --for sizeOfFlight, _ in pairs(airframe.sizesInAirframe) do
+            for _, sizesInAirframe in ipairs(sizeOfFlightArray) do                
+                local spawnMenu = missionCommands.addSubMenu(sizesInAirframe.sizeOfFlight, airframeMenu)
+                missionCommands.addCommand("Spawn " .. airframe.airframe .. " ".. sizesInAirframe.sizeOfFlight, spawnMenu, function() 
+                    rm:spawn({rangeType = "a2a", rangeID = range.rangeID, airframe = airframe.airframe, sizeOfFlight = sizesInAirframe.sizeOfFlight})
                 end)
-                missionCommands.addCommand("Despawn " .. airframe .. " ".. sizeOfFlight, spawnMenu, function()
-                    rm:despawn({rangeType = "a2a", rangeID = rangeID, airframe = airframe, sizeOfFlight = sizeOfFlight})
+                missionCommands.addCommand("Despawn " .. airframe.airframe .. " ".. sizesInAirframe.sizeOfFlight, spawnMenu, function()
+                    rm:despawn({rangeType = "a2a", rangeID = range.rangeID, airframe = airframe.airframe, sizeOfFlight = sizesInAirframe.sizeOfFlight})
                 end)
             end
         end
-        missionCommands.addCommand("Clear all spawns in " .. rangeID, rangeMenu, function() rm:clearAllA2A(rangeID) end)
+        missionCommands.addCommand("Clear all spawns in " .. range.rangeID, rangeMenu, function() rm:clearAllA2A(range.rangeID) end)
     end
 
     trigger.action.outText("Range Management Module initialized", 20)
