@@ -179,6 +179,36 @@ function RangeManager:new()
     return self
 end
 
+-- Returns the group only while it really exists and still contains units.
+-- A2A groups can disappear without going through this module (for example
+-- after all aircraft have been destroyed), so groupStatus alone is not
+-- sufficient to determine whether another spawn is allowed.
+function RangeManager:getLiveGroup(groupName)
+    local groupObject = Group.getByName(groupName)
+
+    if not groupObject or not groupObject:isExist() or groupObject:getSize() < 1 then
+        return nil
+    end
+
+    return groupObject
+end
+
+-- Synchronizes the internal A2A state with the actual DCS world state.
+function RangeManager:isA2AGroupActive(groupName)
+    local status = self.groupStatus[groupName]
+
+    if not status or not status.active then
+        return false
+    end
+
+    if not self:getLiveGroup(groupName) then
+        status.active = false
+        return false
+    end
+
+    return true
+end
+
 -- Spawns all units associated with a metagroup
 function RangeManager:spawnMetagroup(data)
     local country = data.country
@@ -300,10 +330,16 @@ function RangeManager:spawn(data)
         
         if self.aaRanges[rangeID] and self.aaRanges[rangeID][airframe] and self.aaRanges[rangeID][airframe][sizeOfFlight] then
             local groupName = self.aaRanges[rangeID][airframe][sizeOfFlight]
-            if self.groupStatus[groupName] == nil or not self.groupStatus[groupName].active then
-                mist.respawnGroup(groupName, true)
-                self.groupStatus[groupName] = { active = true }
-                trigger.action.outText("Spawning A2A Group: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
+            if not self:isA2AGroupActive(groupName) then
+                local spawnedGroup = mist.respawnGroup(groupName, true)
+
+                if spawnedGroup then
+                    self.groupStatus[groupName] = { active = true }
+                    trigger.action.outText("Spawning A2A Group: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
+                else
+                    self.groupStatus[groupName] = { active = false }
+                    trigger.action.outText("Failed to spawn A2A Group: " .. groupName, 10)
+                end
             else
                 trigger.action.outText("Group " .. groupName .. " is already active.", 10)
             end
@@ -326,13 +362,17 @@ function RangeManager:despawn(data)
 
         if self.aaRanges[rangeID] and self.aaRanges[rangeID][airframe] and self.aaRanges[rangeID][airframe][sizeOfFlight] then
             local groupName = self.aaRanges[rangeID][airframe][sizeOfFlight]
-            local groupObject = Group.getByName(groupName)
+            local groupObject = self:getLiveGroup(groupName)
+
             if groupObject then
                 trigger.action.deactivateGroup(groupObject)
-                self.groupStatus[groupName].active = false
+                self.groupStatus[groupName] = { active = false }
                 trigger.action.outText("Despawning A2A Group: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
             else
-                trigger.action.outText("A2A Group not found for despawning: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
+                -- The desired state is already reached if the group was
+                -- destroyed by combat or never spawned.
+                self.groupStatus[groupName] = { active = false }
+                trigger.action.outText("A2A Group is already inactive: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
             end
         else
             trigger.action.outText("A2A Range Group not found for despawning: " .. airframe .. " " .. sizeOfFlight .. " in " .. rangeID, 10)
@@ -392,16 +432,29 @@ end
 
 -- clear all Function
 function RangeManager:clearAllA2A(rangeID)
--- loop through all airframes and sizes within that
-for airframe, sizes in pairs(self.aaRanges[rangeID]) do
-    for size, groupName in pairs(sizes) do
-        if self.groupStatus[groupName].active then
-            local groupObject = Group.getByName(groupName)
-            trigger.action.deactivateGroup(groupObject)
-            self.groupStatus[groupName].active = false
+    local range = self.aaRanges[rangeID]
+
+    if not range then
+        trigger.action.outText("A2A Range not found: " .. tostring(rangeID), 10)
+        return
+    end
+
+    -- Loop through all airframes and sizes within the range. Stale state is
+    -- reset even when the DCS group has already disappeared.
+    for airframe, sizes in pairs(range) do
+        for size, groupName in pairs(sizes) do
+            if self:isA2AGroupActive(groupName) then
+                local groupObject = self:getLiveGroup(groupName)
+                if groupObject then
+                    trigger.action.deactivateGroup(groupObject)
+                end
+            end
+
+            self.groupStatus[groupName] = { active = false }
         end
     end
-end
+
+    trigger.action.outText("Cleared all A2A spawns in " .. rangeID, 10)
 end
 -- Call the main function
 main()
