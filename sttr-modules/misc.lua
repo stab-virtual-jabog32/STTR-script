@@ -94,23 +94,25 @@ end
 
 
 function deactivateGroup(actualunitname)
-	if Unit.getByName(actualunitname) == nil
-	then
-		if Group.getByName(Group.getByName(actualunitname)) ~= nil
-		then
-			trigger.action.deactivateGroup(actualunitname)
-			trigger.action.outText(actualunitname.. " deactivated",10)
-		else
-			trigger.action.outText(actualunitname.. " does not exist",10)
-			return
+	local groupToDeactivate = Group.getByName(actualunitname)
+
+	-- Keep compatibility with callers that pass a unit name instead of a
+	-- group name by resolving the unit's parent group.
+	if groupToDeactivate == nil then
+		local unit = Unit.getByName(actualunitname)
+		if unit ~= nil then
+			groupToDeactivate = Unit.getGroup(unit)
 		end
-	else
-		local actualunittoactivate = Unit.getByName(actualunitname)
-		local grouptoactivate = Unit.getGroup(actualunittoactivate)
-		local groupnametoactivate = Group.getName(grouptoactivate)
-		trigger.action.outText(groupnametoactivate.. " deactivated",10)
-		trigger.action.deactivateGroup(grouptoactivate)
 	end
+
+	if groupToDeactivate == nil then
+		trigger.action.outText(actualunitname.. " does not exist",10)
+		return
+	end
+
+	local groupName = Group.getName(groupToDeactivate)
+	trigger.action.deactivateGroup(groupToDeactivate)
+	trigger.action.outText(groupName.. " deactivated",10)
 end
 
 
